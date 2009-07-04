@@ -4,7 +4,14 @@ require 'rdoc/rdoc'
 class RDoc::Generator::SQL
   RDoc::RDoc.add_generator self
 
-  class << self; alias :for :new end
+  class << self
+    alias :for :new
+  end
+
+  def bar
+  end
+
+  alias :foo :bar
 
   attr_accessor :class_dir, :file_dir
 
@@ -18,6 +25,8 @@ class RDoc::Generator::SQL
     @fh         = nil
   end
 
+  ##
+  # Generate some stuff
   def generate top_levels
     @files    = top_levels
     @classes  = RDoc::TopLevel.all_classes_and_modules
@@ -28,6 +37,7 @@ class RDoc::Generator::SQL
       create_tables
       write_files
       write_classes
+      write_methods
     }
   end
 
@@ -49,7 +59,7 @@ class RDoc::Generator::SQL
       CREATE TABLE IF NOT EXISTS "class_objects"
         ( "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
           "class_type" varchar(255),
-          "full_name" varchar(255),
+          "name" varchar(255),
           "superclass_name" varchar(255),
           "description" text,
           "superclass_id" INTEGER,
@@ -57,6 +67,64 @@ class RDoc::Generator::SQL
           "updated_at" datetime
         );
     eosql
+
+    @fh.puts <<-eosql
+      CREATE TABLE IF NOT EXISTS "method_objects"
+        ( "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+          "name" varchar(255),
+          "parent_name" varchar(255),
+          "visibility" varchar(255),
+          "alias_for" varchar(255),
+          "call_seq" text,
+          "params" text,
+          "description" text,
+          "markup_code" text,
+          "class_object_id" INTEGER,
+          "created_at" datetime,
+          "updated_at" datetime
+        );
+    eosql
+  end
+
+  def write_methods
+
+    @methods.each do |method|
+      audit = Time.now.utc.strftime('%Y-%m-%d %H:%M:%S')
+      values = ([
+        method.name,
+        method.parent.full_name,
+        method.visibility.to_s,
+        (method.is_alias_for.name rescue nil),
+        method.call_seq,
+        method.params,
+        method.description,
+        method.markup_code,
+      ].map { |x| e x } + [
+        "(select id from class_objects where name = #{e method.parent.full_name})",
+        e(audit),
+        e(audit)
+      ]).join(', ')
+
+      sql = <<-eosql
+      INSERT INTO method_objects
+      (
+        name,
+        parent_name,
+        visibility,
+        alias_for,
+        call_seq,
+        params,
+        description,
+        markup_code,
+        class_object_id,
+        created_at,
+        updated_at
+      ) VALUES (#{values})
+      eosql
+      @fh.puts sql
+    end
+
+    #needs aliass
   end
 
   def write_files
@@ -99,7 +167,7 @@ class RDoc::Generator::SQL
 
       sql = <<-eosql
       INSERT INTO class_objects
-      (class_type, full_name, superclass_name, description,
+      (class_type, name, superclass_name, description,
        superclass_id, created_at, updated_at) VALUES
       (#{values});
       eosql

@@ -51,4 +51,11 @@ class TestRdocsql < Test::Unit::TestCase
   def test_classes
     assert 0 < @db.execute('select * from class_objects').length
   end
+
+  def test_method_objects
+    assert 0 < @db.execute('select * from method_objects').length
+    @db.execute('select class_object_id from method_objects') do |row|
+      assert_not_nil row.first
+    end
+  end
 end
