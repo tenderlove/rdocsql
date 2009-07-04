@@ -27,6 +27,7 @@ class RDoc::Generator::SQL
       @fh = f
       create_tables
       write_files
+      write_classes
     }
   end
 
@@ -41,7 +42,20 @@ class RDoc::Generator::SQL
           "last_modified" datetime,
           "created_at" datetime,
           "updated_at" datetime
-        )
+        );
+    eosql
+
+    @fh.puts <<-eosql
+      CREATE TABLE IF NOT EXISTS "class_objects"
+        ( "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+          "class_type" varchar(255),
+          "full_name" varchar(255),
+          "superclass_name" varchar(255),
+          "description" text,
+          "superclass_id" INTEGER,
+          "created_at" datetime,
+          "updated_at" datetime
+        );
     eosql
   end
 
@@ -50,7 +64,7 @@ class RDoc::Generator::SQL
       requires = file.requires.map { |x| x.name }
       audit = Time.now.utc.strftime('%Y-%m-%d %H:%M:%S')
       values = [
-        file.base_name,
+        file.absolute_name,
         file.description,
         YAML.dump(requires),
         file.file_stat.mtime.utc.strftime('%Y-%m-%d %H:%M:%S'),
@@ -68,7 +82,33 @@ class RDoc::Generator::SQL
     end
   end
 
+  def write_classes
+    @classes.each do |klass|
+      audit = Time.now.utc.strftime('%Y-%m-%d %H:%M:%S')
+      values = [
+        klass.type,
+        klass.full_name,
+        klass.type == 'class' ?
+          (klass.superclass.full_name rescue klass.superclass) :
+           nil,
+        klass.description,
+        nil,
+        audit,
+        audit
+      ].map { |x| e x }.join(', ')
+
+      sql = <<-eosql
+      INSERT INTO class_objects
+      (class_type, full_name, superclass_name, description,
+       superclass_id, created_at, updated_at) VALUES
+      (#{values});
+      eosql
+      @fh.puts sql
+    end
+  end
+
   def e string
+    return 'NULL' unless string
     "'#{string.gsub(/'/, '\'\'')}'"
   end
 end

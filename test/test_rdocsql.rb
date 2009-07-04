@@ -1,3 +1,4 @@
+require 'rubygems'
 require "test/unit"
 require "rdoc/generator/sql"
 require 'amalgalite'
@@ -29,6 +30,8 @@ class RDoc::Generator::SQL
   end
 end
 
+##
+# Hello world!
 class TestRdocsql < Test::Unit::TestCase
   def setup
     rdoc    = RDoc::RDoc.new
@@ -46,5 +49,6 @@ class TestRdocsql < Test::Unit::TestCase
   end
 
   def test_classes
+    assert 0 < @db.execute('select * from class_objects').length
   end
 end
