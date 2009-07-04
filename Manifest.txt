@@ -1,0 +1,7 @@
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+bin/rdocsql
+lib/rdocsql.rb
+test/test_rdocsql.rb
