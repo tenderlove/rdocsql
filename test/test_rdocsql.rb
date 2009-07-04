@@ -30,6 +30,12 @@ class RDoc::Generator::SQL
   end
 end
 
+class A
+end
+
+class B < A
+end
+
 ##
 # Hello world!
 class TestRdocsql < Test::Unit::TestCase
@@ -50,6 +56,8 @@ class TestRdocsql < Test::Unit::TestCase
 
   def test_classes
     assert 0 < @db.execute('select * from class_objects').length
+    superclass = @db.execute('select superclass_id from class_objects')
+    assert superclass.flatten.compact.length > 0
   end
 
   def test_method_objects

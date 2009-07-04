@@ -87,7 +87,6 @@ class RDoc::Generator::SQL
   end
 
   def write_methods
-
     @methods.each do |method|
       audit = Time.now.utc.strftime('%Y-%m-%d %H:%M:%S')
       values = ([
@@ -173,6 +172,17 @@ class RDoc::Generator::SQL
       eosql
       @fh.puts sql
     end
+
+    @fh.puts <<-eosql
+    CREATE VIEW IF NOT EXISTS copy AS SELECT * FROM class_objects;
+    eosql
+
+    @fh.puts <<-eosql
+    UPDATE class_objects SET superclass_id =
+      (SELECT id FROM copy WHERE name = class_objects.superclass_name);
+    eosql
+
+    @fh.puts 'DROP VIEW copy'
   end
 
   def e string
