@@ -152,7 +152,7 @@ class RDoc::Generator::SQL
         :superclass_name  => klass.type == 'class' ?
           (klass.superclass.full_name rescue klass.superclass) :
            nil,
-        :description      => klass.description
+        :description      => klass.description.strip
       )
     end
 
@@ -165,6 +165,16 @@ class RDoc::Generator::SQL
       (SELECT id FROM copy WHERE name = code_objects.superclass_name
         and type = "ClassObject");
     eosql
+
+    @classes.each do |klass|
+      (klass.modules + klass.classes).each do |mod|
+        @fh.puts("UPDATE code_objects SET parent_id =
+                 (SELECT id FROM copy WHERE name = #{e klass.full_name})
+                 WHERE code_objects.name = #{e mod.full_name}
+                 AND code_objects.type = 'ClassObject'
+                 ")
+      end
+    end
 
     @fh.puts 'DROP VIEW copy'
   end

@@ -38,6 +38,11 @@ class B < A
   attr_accessor :foo
 end
 
+module Foo
+  class Bar
+  end
+end
+
 ##
 # Hello world!
 class TestRdocsql < Test::Unit::TestCase
@@ -89,5 +94,12 @@ class TestRdocsql < Test::Unit::TestCase
        'ConstantObject'
     )
     assert_equal 1, constants.length
+  end
+
+  def test_namespace_contents
+    row = @db.execute('select id from code_objects where name = ?', 'Foo')
+    id = row.flatten.first
+    row = @db.execute('select id from code_objects where parent_id = ?', id)
+    assert_equal 1, row.length
   end
 end
