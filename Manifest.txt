@@ -1,7 +1,9 @@
+.autotest
 History.txt
 Manifest.txt
 README.txt
 Rakefile
 bin/rdocsql
+lib/rdoc/generator/sql.rb
 lib/rdocsql.rb
 test/test_rdocsql.rb
