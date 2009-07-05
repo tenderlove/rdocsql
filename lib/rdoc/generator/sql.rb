@@ -38,6 +38,7 @@ class RDoc::Generator::SQL
       write_files
       write_classes
       write_attributes
+      write_constants
       write_methods
     }
   end
@@ -176,6 +177,20 @@ class RDoc::Generator::SQL
           :access       => attrib.rw,
           :description  => attrib.description.strip,
           :type         => 'AttributeObject'
+        }, {
+          :parent_id    => "(select id from code_objects where name = #{e klass.name} and type = 'ClassObject')",
+        })
+      end
+    end
+  end
+
+  def write_constants
+    @classes.each do |klass|
+      klass.each_constant do |const|
+        insert({
+          :name         => const.name,
+          :type         => 'ConstantObject',
+          :description  => const.description.strip
         }, {
           :parent_id    => "(select id from code_objects where name = #{e klass.name} and type = 'ClassObject')",
         })

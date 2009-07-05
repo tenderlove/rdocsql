@@ -34,6 +34,7 @@ class A
 end
 
 class B < A
+  FOO = 'bar'
   attr_accessor :foo
 end
 
@@ -77,5 +78,16 @@ class TestRdocsql < Test::Unit::TestCase
        'AttributeObject'
     )
     assert_equal 1, aliases.length
+  end
+
+  def test_constants
+    row = @db.execute('select id from code_objects where name = ?', 'B')
+    id = row.flatten.first
+    constants = @db.execute(
+      'select id from code_objects where parent_id = ? and type = ?',
+       id,
+       'ConstantObject'
+    )
+    assert_equal 1, constants.length
   end
 end
