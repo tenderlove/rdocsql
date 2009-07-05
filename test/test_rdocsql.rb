@@ -34,6 +34,7 @@ class A
 end
 
 class B < A
+  attr_accessor :foo
 end
 
 ##
@@ -55,15 +56,26 @@ class TestRdocsql < Test::Unit::TestCase
   end
 
   def test_classes
-    assert 0 < @db.execute('select * from class_objects').length
-    superclass = @db.execute('select superclass_id from class_objects')
+    assert 0 < @db.execute('select * from code_objects where type = "ClassObject"').length
+    superclass = @db.execute('select superclass_id from code_objects')
     assert superclass.flatten.compact.length > 0
   end
 
   def test_method_objects
-    assert 0 < @db.execute('select * from method_objects').length
-    @db.execute('select class_object_id from method_objects') do |row|
+    assert 0 < @db.execute('select * from code_objects where type = "MethodObject"').length
+    @db.execute('select parent_id from code_objects where type = "MethodObject"') do |row|
       assert_not_nil row.first
     end
+  end
+
+  def test_attrbutes
+    row = @db.execute('select id from code_objects where name = ?', 'B')
+    id = row.flatten.first
+    aliases = @db.execute(
+      'select id from code_objects where parent_id = ? and type = ?',
+       id,
+       'AttributeObject'
+    )
+    assert_equal 1, aliases.length
   end
 end

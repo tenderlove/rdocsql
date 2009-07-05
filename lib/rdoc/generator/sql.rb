@@ -37,6 +37,7 @@ class RDoc::Generator::SQL
       create_tables
       write_files
       write_classes
+      write_attributes
       write_methods
     }
   end
@@ -56,32 +57,24 @@ class RDoc::Generator::SQL
     eosql
 
     @fh.puts <<-eosql
-      CREATE TABLE IF NOT EXISTS "class_objects"
+      CREATE TABLE IF NOT EXISTS "code_objects"
         ( "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-          "class_type" varchar(255),
-          "name" varchar(255),
+          "parent_id"       INTEGER,
+          "type"            varchar(255),
+          "name"            varchar(255),
+          "access"          varchar(255),
+          "aliases"         text,
+          "call_seq"        text,
+          "params"          text,
+          "alias_for"       varchar(255),
+          "class_type"      varchar(255),
+          "visibility"      varchar(255),
+          "description"     text,
+          "markup_code"     text,
+          "superclass_id"   INTEGER,
           "superclass_name" varchar(255),
-          "description" text,
-          "superclass_id" INTEGER,
-          "created_at" datetime,
-          "updated_at" datetime
-        );
-    eosql
-
-    @fh.puts <<-eosql
-      CREATE TABLE IF NOT EXISTS "method_objects"
-        ( "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-          "name" varchar(255),
-          "parent_name" varchar(255),
-          "visibility" varchar(255),
-          "alias_for" varchar(255),
-          "call_seq" text,
-          "params" text,
-          "description" text,
-          "markup_code" text,
-          "class_object_id" INTEGER,
-          "created_at" datetime,
-          "updated_at" datetime
+          "created_at"      datetime,
+          "updated_at"      datetime
         );
     eosql
   end
@@ -91,39 +84,39 @@ class RDoc::Generator::SQL
       audit = Time.now.utc.strftime('%Y-%m-%d %H:%M:%S')
       values = ([
         method.name,
-        method.parent.full_name,
+        'MethodObject',
         method.visibility.to_s,
+        YAML.dump(method.aliases.map { |x| x.name }),
         (method.is_alias_for.name rescue nil),
         method.call_seq,
         method.params,
         method.description,
         method.markup_code,
       ].map { |x| e x } + [
-        "(select id from class_objects where name = #{e method.parent.full_name})",
+        "(select id from code_objects where name = #{e method.parent.full_name})",
         e(audit),
         e(audit)
       ]).join(', ')
 
       sql = <<-eosql
-      INSERT INTO method_objects
+      INSERT INTO code_objects
       (
         name,
-        parent_name,
+        type,
         visibility,
+        aliases,
         alias_for,
         call_seq,
         params,
         description,
         markup_code,
-        class_object_id,
+        parent_id,
         created_at,
         updated_at
       ) VALUES (#{values})
       eosql
       @fh.puts sql
     end
-
-    #needs aliass
   end
 
   def write_files
@@ -151,38 +144,65 @@ class RDoc::Generator::SQL
 
   def write_classes
     @classes.each do |klass|
-      audit = Time.now.utc.strftime('%Y-%m-%d %H:%M:%S')
-      values = [
-        klass.type,
-        klass.full_name,
-        klass.type == 'class' ?
+      insert(
+        :type             => 'ClassObject',
+        :class_type       => klass.type,
+        :name             => klass.full_name,
+        :superclass_name  => klass.type == 'class' ?
           (klass.superclass.full_name rescue klass.superclass) :
            nil,
-        klass.description,
-        nil,
-        audit,
-        audit
-      ].map { |x| e x }.join(', ')
-
-      sql = <<-eosql
-      INSERT INTO class_objects
-      (class_type, name, superclass_name, description,
-       superclass_id, created_at, updated_at) VALUES
-      (#{values});
-      eosql
-      @fh.puts sql
+        :description      => klass.description
+      )
     end
 
     @fh.puts <<-eosql
-    CREATE VIEW IF NOT EXISTS copy AS SELECT * FROM class_objects;
+    CREATE VIEW IF NOT EXISTS copy AS SELECT * FROM code_objects;
     eosql
 
     @fh.puts <<-eosql
-    UPDATE class_objects SET superclass_id =
-      (SELECT id FROM copy WHERE name = class_objects.superclass_name);
+    UPDATE code_objects SET superclass_id =
+      (SELECT id FROM copy WHERE name = code_objects.superclass_name
+        and type = "ClassObject");
     eosql
 
     @fh.puts 'DROP VIEW copy'
+  end
+
+  def write_attributes
+    @classes.each do |klass|
+      klass.each_attribute do |attrib|
+        insert({
+          :name         => attrib.name,
+          :access       => attrib.rw,
+          :description  => attrib.description.strip,
+          :type         => 'AttributeObject'
+        }, {
+          :parent_id    => "(select id from code_objects where name = #{e klass.name} and type = 'ClassObject')",
+        })
+      end
+    end
+  end
+
+  def insert params = {}, escaped = {}
+    audit = Time.now.utc.strftime('%Y-%m-%d %H:%M:%S')
+    columns = []
+    values  = []
+
+    params.each do |k,v|
+      columns << k
+      values << e(v)
+    end
+
+    escaped.each { |k,v| columns << k; values << v }
+
+    columns += ['created_at', 'updated_at']
+    values  += [e(audit), e(audit)]
+
+    @fh.puts(<<-eosql)
+      INSERT INTO code_objects
+      (#{columns.join(', ')}) VALUES
+      (#{values.join(', ')})
+    eosql
   end
 
   def e string
