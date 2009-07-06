@@ -34,6 +34,7 @@ class RDoc::Generator::ActiveRecord
     @methods  = @classes.map { |x| x.method_list }.flatten
 
     @class_cache = {}
+    @file_cache = {}
 
     write_files
     write_classes
@@ -45,6 +46,7 @@ class RDoc::Generator::ActiveRecord
     @methods.each do |method|
       MethodObject.create!(
         :name         => method.name,
+        :method_type  => method.type,
         :visibility   => method.visibility.to_s,
         :aliases      => method.aliases.map { |x| x.name },
         :alias_for    => (method.is_alias_for.name rescue nil),
@@ -59,7 +61,7 @@ class RDoc::Generator::ActiveRecord
 
   def write_files
     @files.each do |file|
-      SourceFile.create!(
+      @file_cache[file.absolute_name] = SourceFile.create!(
         :name           => file.absolute_name,
         :description    => file.description.strip,
         :requires       => file.requires.map { |x| x.name },
@@ -79,6 +81,10 @@ class RDoc::Generator::ActiveRecord
         :description      => klass.description.strip
       )
       @class_cache[klass.full_name] = ar_class
+
+      klass.in_files.each do |file|
+        @file_cache[file.absolute_name].code_objects << ar_class
+      end
 
       klass.each_attribute do |attrib|
         AttributeObject.create!(
