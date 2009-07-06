@@ -37,8 +37,6 @@ class RDoc::Generator::SQL
       create_tables
       write_files
       write_classes
-      write_attributes
-      write_constants
       write_methods
     }
   end
@@ -133,6 +131,27 @@ class RDoc::Generator::SQL
            nil,
         :description      => klass.description.strip
       )
+
+      klass.each_attribute do |attrib|
+        insert({
+          :name         => attrib.name,
+          :access       => attrib.rw,
+          :description  => attrib.description.strip,
+          :type         => 'AttributeObject'
+        }, {
+          :parent_id    => "(select id from code_objects where name = #{e klass.name} and type = 'ClassObject')",
+        })
+      end
+
+      klass.each_constant do |const|
+        insert({
+          :name         => const.name,
+          :type         => 'ConstantObject',
+          :description  => const.description.strip
+        }, {
+          :parent_id    => "(select id from code_objects where name = #{e klass.name} and type = 'ClassObject')",
+        })
+      end
     end
 
     @fh.puts <<-eosql
@@ -156,35 +175,6 @@ class RDoc::Generator::SQL
     end
 
     @fh.puts 'DROP VIEW copy'
-  end
-
-  def write_attributes
-    @classes.each do |klass|
-      klass.each_attribute do |attrib|
-        insert({
-          :name         => attrib.name,
-          :access       => attrib.rw,
-          :description  => attrib.description.strip,
-          :type         => 'AttributeObject'
-        }, {
-          :parent_id    => "(select id from code_objects where name = #{e klass.name} and type = 'ClassObject')",
-        })
-      end
-    end
-  end
-
-  def write_constants
-    @classes.each do |klass|
-      klass.each_constant do |const|
-        insert({
-          :name         => const.name,
-          :type         => 'ConstantObject',
-          :description  => const.description.strip
-        }, {
-          :parent_id    => "(select id from code_objects where name = #{e klass.name} and type = 'ClassObject')",
-        })
-      end
-    end
   end
 
   def insert params = {}, escaped = {}
