@@ -4,6 +4,7 @@ Manifest.txt
 README.txt
 Rakefile
 bin/rdocsql
+lib/rdoc/generator/active_record.rb
 lib/rdoc/generator/sql.rb
 lib/rdocsql.rb
 test/test_rdocsql.rb
