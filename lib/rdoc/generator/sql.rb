@@ -82,41 +82,20 @@ class RDoc::Generator::SQL
 
   def write_methods
     @methods.each do |method|
-      audit = Time.now.utc.strftime('%Y-%m-%d %H:%M:%S')
-      values = ([
-        method.name,
-        'MethodObject',
-        method.visibility.to_s,
-        YAML.dump(method.aliases.map { |x| x.name }),
-        (method.is_alias_for.name rescue nil),
-        method.call_seq,
-        method.params,
-        method.description,
-        method.markup_code,
-      ].map { |x| e x } + [
-        "(select id from code_objects where name = #{e method.parent.full_name})",
-        e(audit),
-        e(audit)
-      ]).join(', ')
-
-      sql = <<-eosql
-      INSERT INTO code_objects
-      (
-        name,
-        type,
-        visibility,
-        aliases,
-        alias_for,
-        call_seq,
-        params,
-        description,
-        markup_code,
-        parent_id,
-        created_at,
-        updated_at
-      ) VALUES (#{values})
-      eosql
-      @fh.puts sql
+      insert({
+        :name         => method.name,
+        :type         => 'MethodObject',
+        :visibility   => method.visibility.to_s,
+        :aliases      => YAML.dump(method.aliases.map { |x| x.name }),
+        :alias_for    => (method.is_alias_for.name rescue nil),
+        :call_seq     => method.call_seq,
+        :params       => method.params,
+        :description  => method.description,
+        :markup_code  => method.markup_code
+      }, {
+        :parent_id =>
+          "(select id from code_objects where name = #{e method.parent.full_name})",
+      })
     end
   end
 
