@@ -8,6 +8,7 @@
 #
 
 require "rdoc/generator/sql"
+require "rdoc/generator/active_record"
 
 begin
   r = RDoc::RDoc.new

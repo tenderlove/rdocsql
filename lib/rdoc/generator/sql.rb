@@ -15,8 +15,6 @@ class RDoc::Generator::SQL
 
   attr_accessor :class_dir, :file_dir
 
-  MUTEX = Mutex.new
-
   def initialize options
     @options    = options
     @class_dir  = nil
@@ -59,19 +57,19 @@ class RDoc::Generator::SQL
       CREATE TABLE IF NOT EXISTS "code_objects"
         ( "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
           "parent_id"       INTEGER,
+          "superclass_id"   INTEGER,
           "type"            varchar(255),
           "name"            varchar(255),
           "access"          varchar(255),
-          "aliases"         text,
-          "call_seq"        text,
-          "params"          text,
           "alias_for"       varchar(255),
           "class_type"      varchar(255),
           "visibility"      varchar(255),
+          "superclass_name" varchar(255),
+          "aliases"         text,
+          "call_seq"        text,
+          "params"          text,
           "description"     text,
           "markup_code"     text,
-          "superclass_id"   INTEGER,
-          "superclass_name" varchar(255),
           "created_at"      datetime,
           "updated_at"      datetime
         );
