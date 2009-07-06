@@ -1,10 +1,10 @@
 = rdocsql
 
-* FIX (url)
+* http://github.com/tenderlove/rdocsql
 
 == DESCRIPTION:
 
-FIX (describe your package)
+View your rdoc as SQL.
 
 == FEATURES/PROBLEMS:
 
