@@ -1,34 +1,35 @@
 require 'rubygems'
 require "test/unit"
-require "rdoc/generator/sql"
-require 'amalgalite'
+require "rdoc/generator/active_record"
 require 'tempfile'
 
-class RDoc::Generator::SQL
-  class << self
-    attr_accessor :fake_file
-  end
+$-w = false
+require 'activerecord'
+require 'migrations/create_source_files'
+require 'migrations/create_code_objects'
+$-w = true
 
-  def open *args
-    self.class.fake_file = FakeFile.new(*args)
-    yield self.class.fake_file
-  end
-
-  class FakeFile
-    attr_accessor :filename, :mode, :db
-
-    def initialize filename, mode
-      @filename = filename
-      @mode     = mode
-      @db_name  = File.join(Dir.tmpdir, "#{Time.now.to_f}.db")
-      @db = Amalgalite::Database.new(@db_name)
-    end
-
-    def puts sql
-      @db.execute sql
-    end
-  end
+RDoc::Generator::ActiveRecord.const_set(:RAILS_ROOT, File.dirname(__FILE__))
+%w{
+  code_object
+  attribute_object
+  class_object
+  constant_object
+  method_object
+  source_file
+}.each do |model|
+  require "models/#{model}"
 end
+
+db_name = File.join(Dir.tmpdir, "#{Time.now.to_f}.db")
+
+ActiveRecord::Base.establish_connection(
+  :adapter  => 'sqlite3',
+  :database => db_name
+)
+
+CreateCodeObjects.migrate :up
+CreateSourceFiles.migrate :up
 
 class A
 end
@@ -47,59 +48,17 @@ end
 # Hello world!
 class TestRdocsql < Test::Unit::TestCase
   def setup
+    $-w = false
     rdoc    = RDoc::RDoc.new
-    rdoc.document ['-q', '-f', 'sql']
-    @db = RDoc::Generator::SQL.fake_file.db
+    rdoc.document ['-q', '-f', 'activerecord']
+    $-w = true
   end
 
   def teardown
-    RDoc::Generator::SQL.fake_file = nil
-    FileUtils.rm_rf('doc')
+    FileUtils.rm_rf(File.join(File.dirname(__FILE__), '..', 'doc'))
   end
 
-  def test_source_files
-    assert 0 < @db.execute('select * from source_files').length
-  end
-
-  def test_classes
-    assert 0 < @db.execute('select * from code_objects where type = "ClassObject"').length
-    superclass = @db.execute('select superclass_id from code_objects')
-    assert superclass.flatten.compact.length > 0
-  end
-
-  def test_method_objects
-    assert 0 < @db.execute('select * from code_objects where type = "MethodObject"').length
-    @db.execute('select parent_id from code_objects where type = "MethodObject"') do |row|
-      assert_not_nil row.first
-    end
-  end
-
-  def test_attrbutes
-    row = @db.execute('select id from code_objects where name = ?', 'B')
-    id = row.flatten.first
-    aliases = @db.execute(
-      'select id from code_objects where parent_id = ? and type = ?',
-       id,
-       'AttributeObject'
-    )
-    assert_equal 1, aliases.length
-  end
-
-  def test_constants
-    row = @db.execute('select id from code_objects where name = ?', 'B')
-    id = row.flatten.first
-    constants = @db.execute(
-      'select id from code_objects where parent_id = ? and type = ?',
-       id,
-       'ConstantObject'
-    )
-    assert_equal 1, constants.length
-  end
-
-  def test_namespace_contents
-    row = @db.execute('select id from code_objects where name = ?', 'Foo')
-    id = row.flatten.first
-    row = @db.execute('select id from code_objects where parent_id = ?', id)
-    assert_equal 1, row.length
+  def test_class_object_count
+    assert_equal 18, ClassObject.count
   end
 end

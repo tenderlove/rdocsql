@@ -1,0 +1,2 @@
+class ConstantObject < CodeObject
+end
