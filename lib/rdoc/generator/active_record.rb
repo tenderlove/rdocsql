@@ -50,6 +50,7 @@ class RDoc::Generator::ActiveRecord
         :visibility   => method.visibility.to_s,
         :aliases      => method.aliases.map { |x| x.name },
         :alias_for    => (method.is_alias_for.name rescue nil),
+        :aref         => method.aref,
         :call_seq     => method.call_seq,
         :params       => method.params,
         :description  => method.description,
@@ -63,6 +64,7 @@ class RDoc::Generator::ActiveRecord
     @files.each do |file|
       @file_cache[file.absolute_name] = SourceFile.create!(
         :name           => file.absolute_name,
+        :simple         => file.parser == RDoc::Parser::Simple,
         :description    => file.description.strip,
         :requires       => file.requires.map { |x| x.name },
         :last_modified  => file.file_stat.mtime
