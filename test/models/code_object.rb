@@ -8,4 +8,8 @@ class CodeObject < ActiveRecord::Base
   def parent= object
     write_attribute "parent_id", object.id
   end
+
+  def children
+    CodeObject.find_all_by_parent_id(self.id)
+  end
 end

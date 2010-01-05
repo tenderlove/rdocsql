@@ -8,11 +8,6 @@ class RDoc::Generator::ActiveRecord
     alias :for :new
   end
 
-  def bar
-  end
-
-  alias :foo :bar
-
   attr_accessor :class_dir, :file_dir
 
   RAILS_ROOT = ENV['RAILS_ROOT']
@@ -36,6 +31,8 @@ class RDoc::Generator::ActiveRecord
     @class_cache = {}
     @file_cache = {}
 
+    ::CodeObject.delete_all
+    ::SourceFile.delete_all
     write_files
     write_classes
     write_methods
@@ -44,6 +41,7 @@ class RDoc::Generator::ActiveRecord
   private
   def write_methods
     @methods.each do |method|
+      next unless method.document_self
       MethodObject.create!(
         :name         => method.name,
         :method_type  => method.type,
@@ -62,6 +60,7 @@ class RDoc::Generator::ActiveRecord
 
   def write_files
     @files.each do |file|
+      next unless file.document_self
       @file_cache[file.absolute_name] = SourceFile.create!(
         :name           => file.absolute_name,
         :simple         => file.parser == RDoc::Parser::Simple,
@@ -74,6 +73,7 @@ class RDoc::Generator::ActiveRecord
 
   def write_classes
     @classes.each do |klass|
+      next unless klass.document_self
       ar_class = ClassObject.create!(
         :name             => klass.full_name,
         :class_type       => klass.type,
@@ -108,6 +108,7 @@ class RDoc::Generator::ActiveRecord
 
     @classes.each do |klass|
       (klass.modules + klass.classes).each do |mod|
+        next unless mod.document_self
         record = @class_cache[mod.full_name]
         record.parent = @class_cache[klass.full_name]
         record.save!

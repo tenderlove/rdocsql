@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+
+FileUtils.mkdir_p('app/models')
+FileUtils.mkdir_p('db/migrate')
+
+BASE = File.expand_path(File.join(File.dirname(__FILE__), '..', 'test'))
+
+Dir[File.join(BASE, 'migrations', '*.rb')].each do |file|
+  FileUtils.cp(file, 'app/migrations')
+end
+
+Dir[File.join(BASE, 'models', '*.rb')].each do |file|
+  FileUtils.cp(file, 'app/models')
+end
