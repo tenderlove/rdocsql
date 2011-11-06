@@ -1,3 +1,4 @@
+require 'rdoc'
 require 'rdoc/generator'
 require 'rdoc/rdoc'
 

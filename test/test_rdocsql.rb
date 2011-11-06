@@ -59,6 +59,6 @@ class TestRdocsql < Test::Unit::TestCase
   end
 
   def test_class_object_count
-    assert_equal 18, ClassObject.count
+    assert_equal 17, ClassObject.count
   end
 end
