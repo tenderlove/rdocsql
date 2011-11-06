@@ -8,7 +8,7 @@ Hoe.plugin :bundler
 
 Hoe.spec 'rdocsql' do
   developer('Aaron Patterson', 'aaronp@rubyforge.org')
-  self.extra_dev_deps << ["rdoc", ">= 0"]
+  self.extra_deps     << ["rdoc", ">= 0"]
   self.extra_dev_deps << ["hoe-gemspec", ">= 0"]
   self.extra_dev_deps << ["hoe-bundler", ">= 0"]
   self.extra_dev_deps << ["activerecord", "= 2.3.2"]

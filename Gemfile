@@ -4,8 +4,8 @@
 
 source :gemcutter
 
+gem "rdoc", ">=0"
 
-gem "rdoc", ">=0", :group => [:development, :test]
 gem "hoe-gemspec", ">=0", :group => [:development, :test]
 gem "hoe-bundler", ">=0", :group => [:development, :test]
 gem "activerecord", "=2.3.2", :group => [:development, :test]
